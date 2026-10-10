@@ -13,7 +13,8 @@ authors:
     affiliation: "Asahikawa City University"
     orcid: "https://orcid.org/0009-0002-9829-8986"
 version: 1.0.0
-date-released: 2026-10-10   # update to the GitHub release date
+doi: 10.5281/zenodo.23281929
+date-released: 2026-10-10
 license: MIT
 repository-code: "https://github.com/bostonghc/Xreading-Progress-Meter"
 keywords:

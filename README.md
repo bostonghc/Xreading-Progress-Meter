@@ -1,5 +1,7 @@
 # Xreading Progress Meter
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23281929.svg)](https://doi.org/10.5281/zenodo.23281929)
+
 A small, privacy-first tool for teachers who use [Xreading](https://xreading.com) for extensive reading.
 It turns an Xreading class export into a student-facing web page with two parts:
 
