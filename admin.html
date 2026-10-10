@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Reading Progress — Data Builder (local only)</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --ink:#1d1d1f; --muted:#6e6e73; --line:#e3e3e6;
+    --accent:#0071e3; --good:#34c759; --warn:#ff9f0a; --track:#ececef;
+    --radius:16px; --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 30px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);padding:24px 16px 60px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto}
+  h1{font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+  .step{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 14px}
+  label{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+  .row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:4px}
+  .row > div{flex:1;min-width:160px}
+  input[type=date],input[type=number],input[type=text]{width:100%;font-size:15px;padding:9px 11px;
+    border:1px solid var(--line);border-radius:10px;outline:none}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+  .hint{color:var(--muted);font-size:12px;margin:4px 0 0}
+  .drop{border:1.5px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.15s;background:#fafafb}
+  .drop:hover,.drop.over{border-color:var(--accent);background:#f0f7ff;color:var(--accent)}
+  .drop input{display:none}
+  .tierrow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .tierrow .tw{flex:0 0 130px}
+  .tierrow .tp{flex:0 0 80px}
+  .tierrow span{color:var(--muted);font-size:13px}
+  .note{margin:14px 0 0;padding:11px 13px;background:#f0f4f9;border:1px solid #dde6f0;border-radius:10px;
+    font-size:12.5px;line-height:1.45;color:#4a5566}
+  .filename{color:var(--ink);font-weight:600}
+  #out{display:none}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  td{padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+  td:last-child{text-align:right;font-weight:600}
+  tr:first-child td{border-top:none}
+  .warnote{margin-top:10px;font-size:13px;color:#8a5a00;background:#fff7e8;border:1px solid #ffe3b0;
+    padding:10px 12px;border-radius:10px}
+  textarea{width:100%;height:170px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical;background:#fbfbfc}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button{font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    padding:10px 16px;border:none;border-radius:10px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--line)}
+  button:disabled{opacity:.4;cursor:default}
+  .ok{color:var(--good);font-weight:600;font-size:13px}
+  .err{color:#c0392b;font-weight:600;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reading Progress — Data Builder</h1>
+  <p class="sub">Runs entirely in your browser. The CSV never uploads anywhere — open this file locally and keep it private.</p>
+
+  <!-- STEP 1: term settings -->
+  <div class="card">
+    <p class="step">1 · Term settings</p>
+    <div class="row">
+      <div>
+        <label for="termstart">First Monday of the term (week 1)</label>
+        <input type="date" id="termstart" value="2026-09-14">
+        <p class="hint">Used to compute the week number.</p>
+      </div>
+      <div>
+        <label for="snapdate">Snapshot date</label>
+        <input type="date" id="snapdate">
+        <p class="hint">Defaults to today.</p>
+      </div>
+      <div>
+        <label for="termend">Last day of the term</label>
+        <input type="date" id="termend" value="2027-01-31">
+        <p class="hint">Holiday weeks included. Drives the weekly-pace countdown.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1b: grading tiers -->
+  <div class="card" id="tiercard">
+    <p class="step">Grading tiers</p>
+    <p class="hint" style="margin:-6px 0 14px">Words required and points awarded at each level. Change these to reset the grade scheme — the downloaded page updates to match. No coding needed.</p>
+    <div class="tierrow"><input class="tw" type="text" inputmode="numeric" value="10,000"><span>words →</span><input class="tp" type="text" inputmode="numeric" value="10"><span>points</span></div>
+    <div class="tierrow"><input class="tw" type="text" inputmode="numeric" value="25,000"><span>words →</span><input class="tp" type="text" inputmode="numeric" value="20"><span>points</span></div>
+    <div class="tierrow"><input class="tw" type="text" inputmode="numeric" value="40,000"><span>words →</span><input class="tp" type="text" inputmode="numeric" value="30"><span>points</span></div>
+    <p class="note">Tier changes reach the page only through the <b>Download updated reading-progress.html</b> button in step&nbsp;3, which needs a CSV loaded first — so tiers publish together with a fresh snapshot. To set or change tiers at the start of term, just drop in any current export (even one where everyone is still at zero).</p>
+  </div>
+
+  <!-- STEP 2: CSV -->
+  <div class="card">
+    <p class="step">2 · Drop the Xreading export</p>
+    <label class="drop" id="drop">
+      <input type="file" id="csv" accept=".csv,text/csv">
+      <span id="droptext">Click to choose, or drag a <b>.csv</b> here</span>
+    </label>
+    <p class="err" id="csverr" style="display:none"></p>
+  </div>
+
+  <!-- STEP 3: results -->
+  <div class="card" id="out">
+    <p class="step">3 · Result</p>
+    <table id="summary"></table>
+    <div class="warnote" id="warnote" style="display:none"></div>
+
+    <p style="font-weight:600;font-size:13px;margin:18px 0 6px">Generated data block</p>
+    <textarea id="block" readonly></textarea>
+    <div class="btnrow">
+      <button id="copy">Copy block</button>
+      <span class="ok" id="copied" style="display:none">Copied ✓</span>
+    </div>
+
+    <p style="font-weight:600;font-size:13px;margin:22px 0 6px">Or update the whole page in one step</p>
+    <p class="hint" style="margin-bottom:8px">Pick your current <b>reading-progress.html</b>; you'll get a ready-to-commit copy with the block already spliced in.</p>
+    <label class="drop" id="droph" style="padding:18px">
+      <input type="file" id="html" accept=".html,text/html">
+      <span id="drophtext">Click to choose <b>reading-progress.html</b></span>
+    </label>
+    <div class="btnrow">
+      <button id="download" class="ghost" disabled>Download updated reading-progress.html</button>
+    </div>
+    <p class="err" id="htmlerr" style="display:none"></p>
+  </div>
+</div>
+
+<script>
+var EXCLUDE_IF = ["Demo Class"];   // drop test/instructor rows
+
+/* grading tiers come from the form fields — single source of truth */
+function tiers(){
+  var out=[];
+  document.querySelectorAll("#tiercard .tierrow").forEach(function(r){
+    var w=parseInt(r.querySelector(".tw").value.replace(/[^0-9]/g,""),10);
+    var p=parseInt(r.querySelector(".tp").value.replace(/[^0-9]/g,""),10);
+    if(!isNaN(w)&&!isNaN(p)&&w>0) out.push({words:w,pts:p});
+  });
+  out.sort(function(a,b){return a.words-b.words;});
+  return out;
+}
+
+var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var stats=null, htmlText=null;
+
+// default snapshot date = today
+(function(){
+  var t=new Date(), p=function(n){return String(n).padStart(2,"0")};
+  document.getElementById("snapdate").value=t.getFullYear()+"-"+p(t.getMonth()+1)+"-"+p(t.getDate());
+})();
+
+/* --- minimal RFC-4180 CSV parser (handles quoted commas + "" escapes) --- */
+function parseCSV(text){
+  text=text.replace(/^﻿/,"");
+  var rows=[],row=[],field="",i=0,q=false,c;
+  while(i<text.length){
+    c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else q=false; }
+      else field+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===","){ row.push(field);field=""; }
+      else if(c==="\n"){ row.push(field);rows.push(row);row=[];field=""; }
+      else if(c==="\r"){ /* skip */ }
+      else field+=c;
+    }
+    i++;
+  }
+  if(field.length||row.length){ row.push(field);rows.push(row); }
+  return rows;
+}
+function toObjects(rows){
+  var head=rows[0].map(function(h){return h.trim()});
+  return rows.slice(1).filter(function(r){return r.some(function(x){return x.trim()!==""})})
+    .map(function(r){var o={};head.forEach(function(h,i){o[h]=r[i]!==undefined?r[i]:""});return o;});
+}
+function num(v){ var n=parseInt(String(v).replace(/[^0-9]/g,""),10); return isNaN(n)?0:n; }
+function flt(v){ var n=parseFloat(String(v).replace(/[^0-9.]/g,"")); return isNaN(n)?0:n; }
+function classLabel(value){
+  var labels=[], seen={};
+  String(value||"").split(",").forEach(function(part){
+    var label=part.trim().replace(/\s+/g," "), key=label.toLowerCase();
+    if(label && !seen[key]){ seen[key]=true; labels.push(label); }
+  });
+  return labels.join(", ")||"(no class)";
+}
+
+function weekNumber(){
+  var s=new Date(document.getElementById("termstart").value+"T00:00:00");
+  var d=new Date(document.getElementById("snapdate").value+"T00:00:00");
+  if(isNaN(s)||isNaN(d)) return 1;
+  return Math.max(1, Math.floor((d-s)/(7*864e5))+1);
+}
+function snapLabel(){
+  var d=new Date(document.getElementById("snapdate").value+"T00:00:00");
+  if(isNaN(d)) return "";
+  return MONTHS[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear();
+}
+
+function compute(objs){
+  var ts=tiers();
+  var kept=objs.filter(function(r){
+    var cls=r["Classes"]||"";
+    return !EXCLUDE_IF.some(function(x){return cls.indexOf(x)>=0;});
+  });
+  var dropped=objs.length-kept.length;
+  function statsFor(rows){
+    var reached={}; ts.forEach(function(t){reached[t.words]=0;});
+    var atZero=0;
+    rows.forEach(function(r){
+      var w=num(r["Words Read"]);
+      if(w===0) atZero++;
+      ts.forEach(function(t){ if(w>=t.words) reached[t.words]++; });
+    });
+    return {total:rows.length, reached:reached, atZero:atZero};
+  }
+  // Group by cleaned class label; the export can repeat the same class name.
+  var byClass={};
+  kept.forEach(function(r){
+    var c=classLabel(r["Classes"]);
+    (byClass[c]=byClass[c]||[]).push(r);
+  });
+  var groups={"All classes":statsFor(kept)};
+  Object.keys(byClass).sort().forEach(function(c){ groups[c]=statsFor(byClass[c]); });
+  // cohort read speed
+  var speeds=[];
+  kept.forEach(function(r){ var w=num(r["Words Read"]),sp=flt(r["Read Speed (Word/Min)"]); if(w>0&&sp>0) speeds.push(sp); });
+  var wpm=speeds.length?Math.round(speeds.reduce(function(a,b){return a+b;},0)/speeds.length):95;
+  return {tiers:ts, groups:groups, cohort:groups["All classes"], dropped:dropped, wpm:wpm,
+          week:weekNumber(), snapshot:snapLabel()};
+}
+
+function block(s){
+  function groupLiteral(g){
+    var pairs=s.tiers.map(function(t){return t.words+":"+g.reached[t.words];}).join(",");
+    return "{ total:"+g.total+", reached:{"+pairs+"}, atZero:"+g.atZero+" }";
+  }
+  var lines=Object.keys(s.groups).map(function(k){
+    return "  "+JSON.stringify(k)+": "+groupLiteral(s.groups[k]);
+  }).join(",\n");
+  return "/* GEN:START */\n"+
+    'var SNAPSHOT = "'+s.snapshot+'";   // date of the export\n'+
+    "var WEEK_NOW = "+s.week+";                // weeks elapsed\n"+
+    "var READ_WPM = "+s.wpm+";               // cohort avg read speed (words/min)\n"+
+    "var GROUPS = {\n"+lines+"\n};\n"+
+    "/* GEN:END */";
+}
+
+function cfgBlock(s){
+  var ts=s?s.tiers:tiers();
+  var start=document.getElementById("termstart").value;
+  var end=document.getElementById("termend").value;
+  var lines=ts.map(function(t){return "  {words:"+t.words+", pts:"+t.pts+"}";}).join(",\n");
+  return "/* CFG:START */\n"+
+    'var TERM_START = "'+start+'";   // first day of the term\n'+
+    'var TERM_END   = "'+end+'";   // last day of the term (holiday weeks included)\n'+
+    "var TIERS = [\n"+lines+"\n];\n"+
+    "/* CFG:END */";
+}
+
+function show(s){
+  var co=s.cohort;
+  var rows=[["Snapshot",s.snapshot+" · week "+s.week],["Students",co.total]];
+  s.tiers.forEach(function(t){
+    rows.push(["Reached "+t.pts+" pts (≥"+t.words.toLocaleString()+")",co.reached[t.words]+"  ("+Math.round(co.reached[t.words]/co.total*100)+"%)"]);
+  });
+  rows.push(["Still on zero",co.atZero],["Cohort read speed",s.wpm+" wpm"],
+            ["Classes detected",(Object.keys(s.groups).length-1)]);
+  document.getElementById("summary").innerHTML=rows.map(function(r){
+    return "<tr><td>"+r[0]+"</td><td>"+r[1]+"</td></tr>";}).join("");
+  var wn=document.getElementById("warnote");
+  if(s.dropped){ wn.style.display="block"; wn.textContent=s.dropped+" test/instructor row(s) dropped (class contained \"Demo Class\")."; }
+  else wn.style.display="none";
+  document.getElementById("block").value=block(s);
+  document.getElementById("out").style.display="block";
+}
+
+/* --- CSV intake --- */
+function readCSV(file){
+  var err=document.getElementById("csverr"); err.style.display="none";
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var objs=toObjects(parseCSV(fr.result));
+      if(!objs.length||!("Words Read" in objs[0])){ throw new Error('No "Words Read" column found — is this the right export?'); }
+      stats=compute(objs);
+      document.getElementById("droptext").innerHTML='<span class="filename">'+file.name+'</span> · loaded';
+      show(stats);
+      refreshDownload();
+    }catch(e){ err.textContent=e.message; err.style.display="block"; }
+  };
+  fr.readAsText(file);
+}
+function wire(dropId,inputId,handler){
+  var d=document.getElementById(dropId), inp=document.getElementById(inputId);
+  inp.addEventListener("change",function(){ if(inp.files[0]) handler(inp.files[0]); });
+  ["dragenter","dragover"].forEach(function(ev){d.addEventListener(ev,function(e){e.preventDefault();d.classList.add("over");});});
+  ["dragleave","drop"].forEach(function(ev){d.addEventListener(ev,function(e){e.preventDefault();d.classList.remove("over");});});
+  d.addEventListener("drop",function(e){ if(e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); });
+}
+wire("drop","csv",readCSV);
+
+/* recompute live when any setting changes */
+["termstart","snapdate","termend"].forEach(function(id){
+  document.getElementById(id).addEventListener("input",function(){ if(stats){ readCSVAgain(); }});
+});
+document.querySelectorAll("#tiercard input").forEach(function(inp){
+  inp.addEventListener("input",function(){ if(stats){ readCSVAgain(); }});
+});
+var lastFile=null;
+function readCSVAgain(){ if(lastFile) readCSV(lastFile); }
+document.getElementById("csv").addEventListener("change",function(e){ lastFile=e.target.files[0]; });
+document.getElementById("drop").addEventListener("drop",function(e){ if(e.dataTransfer.files[0]) lastFile=e.dataTransfer.files[0]; });
+
+/* --- copy --- */
+document.getElementById("copy").addEventListener("click",function(){
+  var ta=document.getElementById("block"); ta.select();
+  navigator.clipboard.writeText(ta.value).then(function(){
+    var c=document.getElementById("copied"); c.style.display="inline"; setTimeout(function(){c.style.display="none";},1600);
+  });
+});
+
+/* --- splice into HTML + download --- */
+function refreshDownload(){
+  var btn=document.getElementById("download");
+  btn.disabled=!(stats&&htmlText);
+}
+wire("droph","html",function(file){
+  var err=document.getElementById("htmlerr"); err.style.display="none";
+  var fr=new FileReader();
+  fr.onload=function(){
+    htmlText=fr.result;
+    if(!/\/\* GEN:START \*\/[\s\S]*?\/\* GEN:END \*\//.test(htmlText)){
+      htmlText=null; err.textContent="That file has no GEN:START / GEN:END block."; err.style.display="block";
+    }else{
+      document.getElementById("drophtext").innerHTML='<span class="filename">'+file.name+'</span> · ready';
+    }
+    refreshDownload();
+  };
+  fr.readAsText(file);
+});
+document.getElementById("download").addEventListener("click",function(){
+  if(!stats||!htmlText) return;
+  var updated=htmlText
+    .replace(/\/\* CFG:START \*\/[\s\S]*?\/\* CFG:END \*\//, cfgBlock(stats))
+    .replace(/\/\* GEN:START \*\/[\s\S]*?\/\* GEN:END \*\//, block(stats));
+  var blob=new Blob([updated],{type:"text/html"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="reading-progress.html"; a.click(); URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>

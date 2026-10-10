@@ -1,0 +1,6 @@
+# Never publish raw student data
+*.csv
+!examples/*.csv
+
+# OS noise
+.DS_Store

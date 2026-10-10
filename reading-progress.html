@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Reading Progress — Xreading Progress Meter (demo)</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#ffffff; --ink:#1d1d1f; --muted:#6e6e73;
+    --line:#e3e3e6; --accent:#0071e3; --good:#34c759; --track:#ececef;
+    --zero:#ff9f0a;
+    --radius:18px; --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 30px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:24px 16px 60px;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+  h1{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:18px}
+  /* ---- calculator (hero) ---- */
+  .hero label{display:block;font-weight:600;margin-bottom:8px}
+  .hero .hint{color:var(--muted);font-size:13px;margin:-4px 0 14px}
+  .inputrow{display:flex;gap:10px}
+  input[type=text]{
+    flex:1;font-size:22px;padding:14px 16px;border:1px solid var(--line);
+    border-radius:14px;outline:none;width:100%;font-variant-numeric:tabular-nums;
+  }
+  input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,113,227,.12)}
+  #result{margin-top:22px}
+  .points{font-size:15px;color:var(--muted)}
+  .points b{font-size:40px;color:var(--ink);font-weight:700;letter-spacing:-.02em;display:inline-block;line-height:1.1}
+  .points .of{font-size:18px;color:var(--muted);font-weight:600}
+  .bar{height:14px;background:var(--track);border-radius:8px;overflow:hidden;margin:16px 0 8px}
+  .bar > i{display:block;height:100%;border-radius:8px;transition:width .5s ease;background:var(--accent)}
+  .nextline{font-size:15px}
+  .nudge{margin-top:14px;padding:14px 16px;border-radius:12px;background:#fff7e8;border:1px solid #ffe3b0;font-size:14px;line-height:1.45}
+  .nudge.done{background:#eafbef;border-color:#bfeccb}
+  .pace{font-weight:600}
+  .weekly-plan{margin-top:20px;border-top:1px solid var(--line)}
+  .plan-title{font-size:16px;font-weight:600;margin:16px 0 2px}
+  .plan-row{display:grid;grid-template-columns:86px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .plan-title + .plan-row{border-top:none}
+  .plan-row.next .plan-target{color:var(--accent)}
+  .plan-target{font-size:14px;font-weight:600}
+  .plan-words{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .plan-time{font-size:13px;color:var(--muted)}
+  .plan-note{font-size:12px;color:var(--muted);margin:10px 0 0}
+  .ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  /* ---- segmented climb track ---- */
+  .climb{position:relative;margin:30px 0 8px;padding-top:30px}
+  .youmark{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;
+    font-size:12px;color:var(--accent);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;transition:left .5s ease}
+  .youmark .ycar{font-size:11px;line-height:.7;margin-top:1px}
+  .segs{display:flex;gap:5px;height:16px}
+  .seg{flex:1;background:var(--track);border-radius:6px;overflow:hidden}
+  .seg.active{box-shadow:0 0 0 2px rgba(0,113,227,.22)}
+  .seg > i{display:block;height:100%;border-radius:6px;transition:width .5s ease}
+  .segticks{display:flex;gap:5px;margin-top:7px}
+  .segticks span{flex:1;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .segticks span.met{color:var(--good);font-weight:600}
+  /* per-tier colors + gold celebration at the top tier */
+  .rtrack > i.gold{background:linear-gradient(90deg,#e8a200,#ffd76a)}
+  .climb.maxed .seg > i{background:linear-gradient(100deg,#e8a200,#fff0c4,#e8a200);
+    background-size:200% 100%;animation:shine 2.2s linear infinite}
+  .climb.maxed .youmark{color:#b8860b}
+  .points.maxed b{color:#e8a200}
+  .nudge.max{background:linear-gradient(135deg,#fff7e0,#ffeec0);border-color:#f0cf72;color:#7a5a00}
+  .nudge.max .star{color:#c8860a;text-shadow:0 1px 1px rgba(0,0,0,.18);font-size:15px}
+  @keyframes shine{to{background-position:-200% 0}}
+  /* ---- ladder ---- */
+  h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 4px}
+  .asof{font-size:13px;color:var(--muted);margin:0 0 18px}
+  .rung{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line)}
+  .rung:first-of-type{border-top:none}
+  .badge{flex:0 0 64px;text-align:center}
+  .badge b{font-size:20px;font-weight:700;display:block;line-height:1}
+  .badge span{font-size:11px;color:var(--muted)}
+  .rbar{flex:1}
+  .rbar .label{font-size:13px;color:var(--muted);margin-bottom:5px}
+  .rbar .label b{color:var(--ink)}
+  .rtrack{height:10px;background:var(--track);border-radius:6px;overflow:hidden}
+  .rtrack > i{display:block;height:100%;border-radius:6px}
+  .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+  /* ---- class selector ---- */
+  .pickrow{display:flex;align-items:center;gap:8px;margin:2px 0 14px;flex-wrap:wrap}
+  .pickrow label{font-size:13px;color:var(--muted)}
+  #classpick{font:inherit;font-size:14px;padding:8px 11px;border:1px solid var(--line);
+    border-radius:10px;background:var(--card);color:var(--ink);max-width:100%;cursor:pointer}
+  #classpick:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Your Reading Grade</h1>
+  <p class="sub">Demo course · in this example the reading component is worth 30 of 100 points.</p>
+
+  <!-- ============ HERO: personal calculator ============ -->
+  <div class="card hero">
+    <label for="words">Enter your total words read</label>
+    <p class="hint">Find this on your Xreading dashboard. Only words from books whose quiz you passed (3/5) count.</p>
+    <div class="inputrow">
+      <input id="words" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 8,400" aria-label="Total words read">
+    </div>
+    <div id="result" aria-live="polite"></div>
+  </div>
+
+  <!-- ============ COMPANION: dated tier ladder ============ -->
+  <div class="card">
+    <h2>How the class is climbing</h2>
+    <div class="pickrow" id="pickrow"><label for="classpick">Show</label><select id="classpick" aria-label="Choose a class"></select></div>
+    <p class="asof" id="asof"></p>
+    <div id="ladder"></div>
+  </div>
+
+</div>
+
+<script>
+/* ===== Grading rule + term dates — edit in admin.html, or here by hand ===== */
+/* CFG:START */
+var TERM_START = "2026-09-14";   // first day of the term
+var TERM_END   = "2027-01-31";   // last day of the term (holiday weeks included)
+var TIERS = [
+  {words:10000, pts:10},
+  {words:25000, pts:20},
+  {words:40000, pts:30}
+];
+/* CFG:END */
+
+/* ===== AUTO-GENERATED from the Xreading CSV — do not hand-edit ===== */
+/* GEN:START */
+var SNAPSHOT = "October 9, 2026";   // date of the export
+var WEEK_NOW = 4;                // weeks elapsed
+var READ_WPM = 104;               // cohort avg read speed (words/min)
+var GROUPS = {
+  "All classes": { total:120, reached:{10000:30,25000:15,40000:4}, atZero:74 },
+  "Demo English 1A": { total:40, reached:{10000:8,25000:4,40000:1}, atZero:28 },
+  "Demo English 1B": { total:38, reached:{10000:10,25000:7,40000:1}, atZero:23 },
+  "Demo English 1C": { total:42, reached:{10000:12,25000:4,40000:2}, atZero:23 }
+};
+/* GEN:END */
+
+/* ---- term timing: derived live from the two dates in the config above ---- */
+var MS_WEEK = 7 * 864e5;
+function termDate(s){ var d = new Date(s + "T00:00:00"); return isNaN(d) ? null : d; }
+var TERM_S = termDate(TERM_START), TERM_E = termDate(TERM_END);
+var today = new Date(); today.setHours(0, 0, 0, 0);
+var TOTAL_WEEKS = (TERM_S && TERM_E) ? Math.max(1, Math.round((TERM_E - TERM_S) / MS_WEEK)) : 15;
+var weeksLeft   = TERM_E ? Math.max(1, Math.round((TERM_E - today) / MS_WEEK)) : 1;
+var fmt = function(n){ return n.toLocaleString("en-US"); };
+
+function points(w){
+  var p = 0; for (var i=0;i<TIERS.length;i++) if (w >= TIERS[i].words) p = TIERS[i].pts;
+  return p;
+}
+function nextTier(w){
+  for (var i=0;i<TIERS.length;i++) if (w < TIERS[i].words) return TIERS[i];
+  return null; // maxed
+}
+
+function mins(w){ return Math.max(1, Math.round(w/READ_WPM)); }
+function kfmt(n){ return (n % 1000 === 0) ? (n/1000)+"k" : fmt(n); }
+
+function weeklyPlan(w, title){
+  var rows = "", nt = nextTier(w);
+  for (var i=0;i<TIERS.length;i++){
+    var t = TIERS[i];
+    if (t.words <= w) continue;
+    var perWeek = Math.ceil((t.words-w)/weeksLeft);
+    rows += '<div class="plan-row'+(nt && t.words===nt.words?' next':'')+'">'+
+      '<div class="plan-target">'+t.pts+' points</div>'+
+      '<div><div class="plan-words">'+fmt(perWeek)+' words/week</div>'+
+      '<div class="plan-time">about '+mins(perWeek)+' minutes of reading time/week</div></div></div>';
+  }
+  return '<section class="weekly-plan"><h3 class="plan-title">'+title+'</h3>'+rows+
+    '<p class="plan-note">Reading-time estimates use the class average reading speed: '+
+    fmt(READ_WPM)+' words per minute.</p></section>';
+}
+
+/* each tier has its own color; the top tier is always gold. */
+function tierColor(i,total){
+  if (i===total-1) return "#e8a200";              // top tier — gold
+  var pal=["#34c759","#0071e3","#5e5ce6","#30b0c7"]; // green, blue, indigo, teal
+  return pal[i % pal.length];
+}
+
+/* one continuous climb: each segment in its tier color, earned = full,
+   next = partial, "you are here" marker on top. Cross the top tier and the
+   whole track goes gold with a shine sweep. */
+function climbTrack(w){
+  var b=[0]; for (var i=0;i<TIERS.length;i++) b.push(TIERS[i].words);
+  var nSeg=TIERS.length, units=0, segHTML="", tickHTML="";
+  var maxed = w >= TIERS[nSeg-1].words;
+  for (var i=0;i<nSeg;i++){
+    var lo=b[i], hi=b[i+1], frac, cls="", col=tierColor(i,nSeg);
+    if (w>=hi){ frac=1; units+=1; }
+    else if (w<=lo){ frac=0; }
+    else { frac=(w-lo)/(hi-lo); cls=" active"; units+=frac; }
+    var bg = maxed ? "" : ";background:"+col;   // when maxed, CSS paints gold
+    segHTML+='<div class="seg'+cls+'"><i style="width:'+Math.round(frac*100)+'%'+bg+'"></i></div>';
+    var met = w>=TIERS[i].words;
+    tickHTML+='<span'+(met?' style="color:'+col+';font-weight:600"':'')+'>'+kfmt(TIERS[i].words)+' · '+TIERS[i].pts+'pt</span>';
+  }
+  var overall=Math.min(100, units/nSeg*100);
+  var markPos=Math.min(98, Math.max(2, overall));
+  return '<div class="climb'+(maxed?" maxed":"")+'">'+
+    '<div class="youmark" style="left:'+markPos+'%"><span class="ynum">'+fmt(w)+'</span><span class="ycar">▾</span></div>'+
+    '<div class="segs">'+segHTML+'</div>'+
+    '<div class="segticks">'+tickHTML+'</div></div>';
+}
+
+function render(){
+  var raw = document.getElementById("words").value.replace(/[^0-9]/g,"");
+  var box = document.getElementById("result");
+  if (raw === ""){ box.innerHTML = weeklyPlan(0, "Starting today"); return; }
+  var w = parseInt(raw,10);
+  var pts = points(w);
+  var nt  = nextTier(w);
+
+  var maxPts = TIERS[TIERS.length-1].pts;
+  var html = '<div class="points'+(pts===maxPts?' maxed':'')+'"><b>'+pts+'</b> '+
+             '<span class="of">/ '+maxPts+' points right now</span></div>';
+  html += climbTrack(w);
+
+  if (nt){
+    var need = nt.words - w;
+    html += '<p class="nextline" style="margin-top:20px">You’ve read <b>'+fmt(w)+'</b> words. '+
+            '<b>'+fmt(need)+'</b> more reaches <b>'+nt.pts+' points</b>.</p>';
+    html += weeklyPlan(w, "Your weekly plan");
+  } else {
+    html += '<p class="nextline" style="margin-top:20px">You’ve read <b>'+fmt(w)+'</b> words.</p>';
+    html += '<div class="nudge max">🏆 <b>'+maxPts+' / '+maxPts+' — reading grade: DEFEATED.</b> '+
+            'You’ve devoured <b>'+fmt(w)+'</b> words and unlocked every reading point. '+
+            'Official rank: <b>Word Wizard</b> <span class="star">★</span> — is this cringe? Extremely. Did you still earn it? Also yes. '+
+            'Anything beyond here still counts when bonuses are decided.</div>';
+  }
+  box.innerHTML = html;
+}
+
+function buildLadder(groupName){
+  var _keys = Object.keys(GROUPS), g = GROUPS[groupName] || GROUPS[_keys[0]];
+  var TOTAL = g.total, REACHED = g.reached, AT_ZERO = g.atZero;
+  document.getElementById("asof").textContent =
+    "As of "+SNAPSHOT+" · week "+WEEK_NOW+" of "+TOTAL_WEEKS+" · "+TOTAL+" students.";
+  // rungs derive from TIERS (highest first) — green = students who earned that tier
+  var html = "";
+  for (var i=TIERS.length-1;i>=0;i--){
+    var t = TIERS[i], n = REACHED[t.words]||0, pct = Math.round(n/TOTAL*100);
+    var isTop = (i===TIERS.length-1), col = tierColor(i,TIERS.length);
+    var badge = isTop ? '<b style="color:#e8a200">'+t.pts+'</b>' : '<b>'+t.pts+'</b>';
+    var fill  = isTop ? '<i class="gold" style="width:'+Math.max(pct,2)+'%"></i>'
+                      : '<i style="width:'+Math.max(pct,2)+'%;background:'+col+'"></i>';
+    html += '<div class="rung">'+
+      '<div class="badge">'+badge+'<span>points</span></div>'+
+      '<div class="rbar"><div class="label"><b>'+n+'</b> students · '+pct+'% have read '+fmt(t.words)+'+ words</div>'+
+      '<div class="rtrack">'+fill+'</div></div></div>';
+  }
+  // ground floor: the nudge line — amber, the "not yet" attention color
+  var first = TIERS[0];
+  var notYet = TOTAL - (REACHED[first.words]||0);
+  html += '<div class="rung">'+
+      '<div class="badge"><b>0</b><span>so far</span></div>'+
+      '<div class="rbar"><div class="label"><b>'+AT_ZERO+' of '+TOTAL+'</b> students have not recorded any words yet</div>'+
+      '<div class="rtrack"><i style="width:'+Math.round(notYet/TOTAL*100)+'%;background:var(--zero)"></i></div></div></div>';
+  document.getElementById("ladder").innerHTML = html;
+}
+
+document.getElementById("words").addEventListener("input", render);
+render();
+
+/* class selector: default to the whole cohort (first key); hide if only one group */
+(function initClimb(){
+  var esc = function(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); };
+  var sel = document.getElementById("classpick"), keys = Object.keys(GROUPS);
+  sel.innerHTML = keys.map(function(k){ return '<option value="'+esc(k)+'">'+esc(k)+'</option>'; }).join("");
+  sel.addEventListener("change", function(){ buildLadder(sel.value); });
+  if (keys.length <= 1) document.getElementById("pickrow").style.display = "none";
+  buildLadder(keys[0]);
+})();
+</script>
+
+<script>
+/* ===== Auto-fit: report our height to a parent page (e.g. the blog iframe) ===== */
+(function(){
+  function postHeight(){
+    var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    parent.postMessage({ xreadingHeight: h }, "*");
+  }
+  window.addEventListener("load", postHeight);
+  window.addEventListener("resize", postHeight);
+  // the calculator result grows/shrinks the page as students type — track that too
+  if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+})();
+</script>
+</body>
+</html>

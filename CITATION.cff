@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use or adapt this software, please cite it as below."
+type: software
+title: "Xreading Progress Meter"
+abstract: >-
+  A privacy-first tool that turns an Xreading class export into a static,
+  student-facing reading-progress page: a personal grade calculator plus an
+  aggregate class progress ladder. All student data is processed locally;
+  the published page holds only class-level counts.
+authors:
+  - family-names: Carr
+    given-names: Geoffrey
+    affiliation: "Asahikawa City University"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add yours if you have one
+version: 1.0.0
+date-released: 2026-10-10   # update to the GitHub release date
+license: MIT
+repository-code: "https://github.com/bostonghc/Xreading-Progress-Meter"
+keywords:
+  - extensive reading
+  - Xreading
+  - EFL
+  - computer-assisted language learning
+  - learning analytics
+  - privacy
