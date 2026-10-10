@@ -11,7 +11,7 @@ authors:
   - family-names: Carr
     given-names: Geoffrey
     affiliation: "Asahikawa City University"
-    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add yours if you have one
+    orcid: "https://orcid.org/0009-0002-9829-8986"
 version: 1.0.0
 date-released: 2026-10-10   # update to the GitHub release date
 license: MIT
